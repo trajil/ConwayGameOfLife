@@ -1,95 +1,86 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
 namespace ConwayGameOfLife;
 
 public class Game
 {
-    int GameSize = 100;
+    const int RowLength = 160;
+    int GameSize = RowLength * 40;
+    int InitialSurvivalPercentage = 11;
     bool[] PreviousGen = [];
     bool[] NextGen = [];
 
     public Game()
     {
         GameInitialization();
-        // Print(PreviousGen);
-
         GameLoop();
-
     }
 
     void GameInitialization()
     {
-        CreatingGeneration();
-        SpawningCellsInPreviousGen();
+        InitiliazingGeneration();
+        SpawningCellsRandomized();
     }
-    void CreatingGeneration()
+    void InitiliazingGeneration()
     {
         PreviousGen = new bool[GameSize];
         NextGen = new bool[GameSize];
     }
 
-    void SpawningCellsInPreviousGen()
+    void SpawningCellsRandomized()
     {
-        // TODO: randomizing spawn
         Random rnd = new Random();
 
         for (int i = 0; i < PreviousGen.Length; i++)
         {
-            int cellLuck = rnd.Next(100);
+            int survivorshipFactor = rnd.Next(100);
 
-            if (cellLuck >= 30)
-            {
-                PreviousGen[i] = true;
-            }
-            else
-            {
-                PreviousGen[i] = false;
+            PreviousGen[i] = survivorshipFactor <= InitialSurvivalPercentage;
 
-            }
         }
     }
-    void Print(bool[] generation)
+    void PrintGeneration(bool[] generation, int currentGeneration)
     {
-        foreach (var cell in generation)
+        string result = $"Current Generation: {currentGeneration}\n";
+
+        for (int y = 0; y < PreviousGen.Length / RowLength; y++)
         {
-            if (cell == true)
+            for (int x = 0; x < RowLength; x++)
             {
-                Console.Write('#');
+                if (PreviousGen[CoordinatesToIndex(x, y)] == true)
+                {
+                    result += "X";
+
+                }
+                else
+                {
+                    result += " ";
+                }
 
             }
-            else
-            {
-                Console.Write(' ');
-
-            }
+            result += "\n";
         }
-        Console.WriteLine();
+
+        Console.Write(result);
     }
 
     void GameLoop()
     {
 
-        int roundCounter = 0;
-        while (CheckIfAnyCellsAreAlive() && roundCounter < 100)
+        int generationCounter = 0;
+        while (CheckIfAnyCellsAreAlive())
         {
-            Console.WriteLine($"Current Generation: {roundCounter}");
-            ApplyRules();
+            PrintGeneration(PreviousGen, generationCounter);
+            StartingEvolution();
             ForwardGeneration();
-            Print(PreviousGen);
-            roundCounter++;
-            Thread.Sleep(1000);
+            Thread.Sleep(100);
+            Console.SetCursorPosition(0, 0);
+            generationCounter++;
         }
     }
 
-    void ApplyRules()
+    void StartingEvolution()
     {
         for (int i = 0; i < PreviousGen.Length; i++)
         {
-            // for every cell:
             int aliveNeighbours = CountAliveNeighbours(i);
             if (aliveNeighbours == 3 || (aliveNeighbours == 2 && PreviousGen[i] == true))
             {
@@ -99,40 +90,74 @@ public class Game
 
     }
 
-    int CountAliveNeighbours(int cell)
+    int CountAliveNeighbours(int cellIndex)
     {
         int aliveNeighbours = 0;
-        for (int i = cell - 2; i < cell + 3; i++)
+        int coordinateX = IndexToCoordinateX(cellIndex);
+        int coordinateY = IndexToCoordinateY(cellIndex);
+        int amountOfColumns = PreviousGen.Length / RowLength;
+
+        for (int i = coordinateY - 1; i <= coordinateY + 1; i++)
         {
-            // making the game field toroidal
-            if (i < 0)
+            for (int j = coordinateX - 1; j <= coordinateX + 1; j++)
             {
-                if (PreviousGen[PreviousGen.Length - (-1 * i)] == true)
+                int x = j;
+                int y = i;
+
+                if (y == coordinateY && x == coordinateX)
+                {
+                    continue;
+                }
+                // check if outside of border
+                //if (y < 0 || x < 0 || y > amountOfColumns - 1 || x > RowLength - 1)
+                //{
+                //    continue;
+                //}
+                // toroidal mode
+
+                if (y < 0)
+                {
+                    y = amountOfColumns - 1;
+                }
+                else if (y >= amountOfColumns - 1)
+                {
+                    y = 0;
+                }
+                if (x < 0)
+                {
+                    x = RowLength - 1;
+                }
+                else if (x >= RowLength - 1)
+                {
+                    x = 0;
+                }
+
+
+                if (PreviousGen[CoordinatesToIndex(x, y)])
                 {
                     aliveNeighbours++;
                 }
-            }
-            else if (i >= PreviousGen.Length)
-            {
-                if (PreviousGen[i - PreviousGen.Length] == true)
-                {
-                    aliveNeighbours++;
-                }
-            }
-            else if (i == cell)
-            {
-                continue;
-            }
-            else
-            {
-                if (PreviousGen[i] == true)
-                {
-                    aliveNeighbours++;
-                }
+
             }
 
         }
+
+
         return aliveNeighbours;
+    }
+    int IndexToCoordinateX(int index)
+    {
+        return index % RowLength;
+    }
+
+    int IndexToCoordinateY(int index)
+    {
+        return index / RowLength;
+    }
+
+    int CoordinatesToIndex(int coordinateX, int coordinateY)
+    {
+        return coordinateY * RowLength + coordinateX;
     }
 
     void ForwardGeneration()
