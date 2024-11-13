@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -8,18 +8,16 @@ namespace ConwayGameOfLife;
 
 public class Game
 {
-    int GameSize = 32;
+    int GameSize = 100;
     bool[] PreviousGen = [];
     bool[] NextGen = [];
 
     public Game()
     {
         GameInitialization();
-        Print(PreviousGen);
+        // Print(PreviousGen);
 
         GameLoop();
-
-
 
     }
 
@@ -37,9 +35,13 @@ public class Game
     void SpawningCellsInPreviousGen()
     {
         // TODO: randomizing spawn
+        Random rnd = new Random();
+
         for (int i = 0; i < PreviousGen.Length; i++)
         {
-            if (i % 2 == 0)
+            int cellLuck = rnd.Next(100);
+
+            if (cellLuck >= 30)
             {
                 PreviousGen[i] = true;
             }
@@ -54,35 +56,103 @@ public class Game
     {
         foreach (var cell in generation)
         {
-            Console.Write($" {cell} ");
+            if (cell == true)
+            {
+                Console.Write('#');
+
+            }
+            else
+            {
+                Console.Write(' ');
+
+            }
         }
+        Console.WriteLine();
     }
 
     void GameLoop()
     {
-        bool atLeastOneCellAlive = true;
 
-        while (atLeastOneCellAlive)
+        int roundCounter = 0;
+        while (CheckIfAnyCellsAreAlive() && roundCounter < 100)
         {
-
+            Console.WriteLine($"Current Generation: {roundCounter}");
             ApplyRules();
-            // Swapping cells from previous to next Gen
-
-            SwapGenNames();
+            ForwardGeneration();
             Print(PreviousGen);
+            roundCounter++;
+            Thread.Sleep(1000);
         }
     }
-
 
     void ApplyRules()
     {
         for (int i = 0; i < PreviousGen.Length; i++)
         {
-            Check
+            // for every cell:
+            int aliveNeighbours = CountAliveNeighbours(i);
+            if (aliveNeighbours == 3 || (aliveNeighbours == 2 && PreviousGen[i] == true))
+            {
+                NextGen[i] = true;
+            }
         }
 
     }
-    void SwapGenNames()
+
+    int CountAliveNeighbours(int cell)
     {
+        int aliveNeighbours = 0;
+        for (int i = cell - 2; i < cell + 3; i++)
+        {
+            // making the game field toroidal
+            if (i < 0)
+            {
+                if (PreviousGen[PreviousGen.Length - (-1 * i)] == true)
+                {
+                    aliveNeighbours++;
+                }
+            }
+            else if (i >= PreviousGen.Length)
+            {
+                if (PreviousGen[i - PreviousGen.Length] == true)
+                {
+                    aliveNeighbours++;
+                }
+            }
+            else if (i == cell)
+            {
+                continue;
+            }
+            else
+            {
+                if (PreviousGen[i] == true)
+                {
+                    aliveNeighbours++;
+                }
+            }
+
+        }
+        return aliveNeighbours;
+    }
+
+    void ForwardGeneration()
+    {
+        for (int i = 0; i < PreviousGen.Length; i++)
+        {
+            PreviousGen[i] = NextGen[i];
+            NextGen[i] = false;
+        }
+
+    }
+    bool CheckIfAnyCellsAreAlive()
+    {
+        foreach (var cell in PreviousGen)
+        {
+            if (cell)
+            {
+                return true;
+            }
+        }
+        return false;
     }
 }
